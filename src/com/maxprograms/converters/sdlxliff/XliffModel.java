@@ -26,6 +26,8 @@ import java.util.TreeSet;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
 import com.maxprograms.xml.Attribute;
@@ -37,8 +39,6 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
-
-import org.xml.sax.SAXException;
 
 public class XliffModel {
 
@@ -62,12 +62,12 @@ public class XliffModel {
 	private ArrayList<Element> mrks;
 	private Set<String> namespaces;
 
-	public XliffModel(String url, String srx, String catalog)
+	public XliffModel(String url, String srx, Catalog catalog)
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		namespaces = new TreeSet<>();
 		original = url;
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 		doc = builder.build(url);
 		root = doc.getRootElement();
 		encoding = doc.getEncoding();

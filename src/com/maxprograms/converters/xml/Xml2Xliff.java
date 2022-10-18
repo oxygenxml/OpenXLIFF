@@ -35,6 +35,8 @@ import java.util.StringTokenizer;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.Constants;
 import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
@@ -51,8 +53,6 @@ import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLUtils;
 import com.wutka.dtd.DTD;
 import com.wutka.dtd.DTDParser;
-
-import org.xml.sax.SAXException;
 
 public class Xml2Xliff {
 
@@ -79,7 +79,7 @@ public class Xml2Xliff {
 	private static Map<String, String> keepFormating;
 	private static boolean segByElement;
 	private static Segmenter segmenter;
-	private static String catalog;
+	private static Catalog catalog;
 	private static String rootElement;
 	private static Map<String, String> entities;
 	private static String entitiesMap;
@@ -97,6 +97,8 @@ public class Xml2Xliff {
 	private static boolean inCData;
 	private static boolean translateComments;
 	private static boolean containsText;
+	private static String currentCatalog;
+  private static Document ditaCache;
 
 	private Xml2Xliff() {
 		// do not instantiate this class
@@ -115,7 +117,7 @@ public class Xml2Xliff {
 		sourceLanguage = params.get("srcLang");
 		targetLanguage = params.get("tgtLang");
 		srcEncoding = params.get("srcEncoding");
-		catalog = params.get("catalog");
+		String catalogFile = params.get("catalog");
 		String elementSegmentation = params.get("paragraph");
 		String initSegmenter = params.get("srxFile");
 		String isInDesign = params.get("InDesign");
@@ -138,8 +140,12 @@ public class Xml2Xliff {
 		}
 
 		try {
+		  if (catalog == null || !catalogFile.equals(currentCatalog)) {
+        catalog = new Catalog(catalogFile);
+        currentCatalog = catalogFile;
+      }
 			boolean autoConfiguration = false;
-			String iniFile = getIniFile(inputFile, catalog);
+			String iniFile = getIniFile(inputFile);
 			if (generic) {
 				File temp = File.createTempFile("config_", ".xml");
 				iniFile = temp.getAbsolutePath();
@@ -234,7 +240,7 @@ public class Xml2Xliff {
 		return result;
 	}
 
-	public static String getIniFile(String fileName, String catalogFile)
+	private static String getIniFile(String fileName)
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		String home = System.getenv("OpenXLIFF_HOME");
 		if (home == null) {
@@ -242,8 +248,7 @@ public class Xml2Xliff {
 		}
 		File folder = new File(home, "xmlfilter");
 		SAXBuilder builder = new SAXBuilder();
-		Catalog cat = new Catalog(catalogFile);
-		builder.setEntityResolver(cat);
+		builder.setEntityResolver(catalog);
 		builder.setValidating(false);
 		builder.setErrorHandler(new SilentErrorHandler());
 		Document doc = builder.build(fileName);
@@ -275,6 +280,37 @@ public class Xml2Xliff {
 			ditaBased = false;
 		}
 
+		if (ditaBased) {
+      File base = new File(folder, "config_dita.xml");
+      if (ditaCache == null) {
+        ditaCache = builder.build(base);
+      }
+      List<Element> list = ditaCache.getRootElement().getChildren();
+      Iterator<Element> it = list.iterator();
+      while (it.hasNext()) {
+        if (rootElement.equals(it.next().getText().trim())) {
+          return base.getAbsolutePath();
+        }
+      }
+      String cls = root.getAttributeValue("class");
+      String[] parts = cls.split("\\s");
+      for (int h = 0; h < parts.length; h++) {
+        String part = parts[h];
+        if (part.indexOf('/') == -1) {
+          continue;
+        }
+        String code = part.substring(part.indexOf('/') + 1).trim();
+        it = list.iterator();
+        while (it.hasNext()) {
+          if (code.equals(it.next().getText().trim())) {
+            return base.getAbsolutePath();
+          }
+        }
+      }
+      MessageFormat mf = new MessageFormat("Base DITA class ''{0}'' not found in ''config_dita.xml''");
+      throw new IOException(mf.format(new Object[] { cls }));
+    }
+
 		// check for ResX before anything else
 		// this requires a fixed ini name
 		if (root.getName().equals("root")) {
@@ -295,7 +331,7 @@ public class Xml2Xliff {
 		}
 		String pub = doc.getPublicId();
 		if (pub != null && !pub.isEmpty()) {
-			String location = cat.matchPublic(pub);
+		  String location = catalog.matchPublic(pub);
 			String s = getRootElement(location);
 			if (s != null) {
 				return new File(folder, "config_" + s + ".xml").getAbsolutePath();
@@ -310,9 +346,9 @@ public class Xml2Xliff {
 			if (sys.indexOf('\\') != -1 && sys.lastIndexOf('/') < sys.length()) {
 				sys = sys.substring(sys.lastIndexOf('\\') + 1);
 			}
-			String location = cat.matchSystem("", sys);
+			String location = catalog.matchSystem("", sys);
 			if (location == null) {
-				location = cat.getDTD(sys);
+				location = catalog.getDTD(sys);
 			}
 			String s = getRootElement(location);
 			if (s != null) {
@@ -325,33 +361,6 @@ public class Xml2Xliff {
 					.getAbsolutePath();
 		}
 
-		File f = new File(folder, "config_" + rootElement + ".xml");
-		if (!f.exists() && ditaBased) {
-			File base = new File(folder, "config_dita.xml");
-			Document dd = builder.build(base);
-			List<Element> list = dd.getRootElement().getChildren();
-			Iterator<Element> it = list.iterator();
-			while (it.hasNext()) {
-				if (rootElement.equals(it.next().getText().trim())) {
-					return base.getAbsolutePath();
-				}
-			}
-			String cls = root.getAttributeValue("class");
-			String[] parts = cls.split("\\s");
-			for (int h = 0; h < parts.length; h++) {
-				String part = parts[h];
-				if (part.indexOf('/') == -1) {
-					continue;
-				}
-				String code = part.substring(part.indexOf('/') + 1).trim();
-				it = list.iterator();
-				while (it.hasNext()) {
-					if (code.equals(it.next().getText().trim())) {
-						return base.getAbsolutePath();
-					}
-				}
-			}
-		}
 		return new File(folder, "config_" + rootElement + ".xml").getAbsolutePath();
 	}
 
@@ -1072,7 +1081,7 @@ public class Xml2Xliff {
 	private static void buildTables(String iniFile)
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 		Document doc = builder.build(iniFile);
 		Element rt = doc.getRootElement();
 		List<Element> tags = rt.getChildren("tag");

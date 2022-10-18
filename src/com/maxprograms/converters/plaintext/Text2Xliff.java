@@ -26,11 +26,12 @@ import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.Constants;
 import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
-
-import org.xml.sax.SAXException;
+import com.maxprograms.xml.Catalog;
 
 public class Text2Xliff {
 
@@ -70,7 +71,7 @@ public class Text2Xliff {
 		try {
 			if (!segByElement) {
 				String initSegmenter = params.get("srxFile");
-				segmenter = new Segmenter(initSegmenter, sourceLanguage, catalog);
+				segmenter = new Segmenter(initSegmenter, sourceLanguage, new Catalog(catalog));
 			}
 			FileInputStream stream = new FileInputStream(inputFile);
 			try (InputStreamReader input = new InputStreamReader(stream, srcEncoding)) {

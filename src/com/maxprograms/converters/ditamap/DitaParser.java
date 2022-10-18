@@ -31,6 +31,8 @@ import java.util.TreeSet;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.Constants;
 import com.maxprograms.converters.ILogger;
 import com.maxprograms.converters.Utils;
@@ -43,8 +45,6 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.SilentErrorHandler;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
-
-import org.xml.sax.SAXException;
 
 public class DitaParser {
 
@@ -112,7 +112,7 @@ public class DitaParser {
 	private boolean containsText;
 	private Catalog catalog;
 
-	public List<String> run(Map<String, String> params)
+	public List<String> run(Map<String, String> params, Catalog catalog)
 			throws IOException, SAXException, ParserConfigurationException, URISyntaxException {
 		List<String> result = new ArrayList<>();
 		filesMap = new TreeSet<>();
@@ -124,7 +124,7 @@ public class DitaParser {
 		referenceChache = new HashMap<>();
 
 		String inputFile = params.get("source");
-		catalog = new Catalog(params.get("catalog"));
+		this.catalog = catalog;
 		String ditaval = params.get("ditaval");
 
 		SAXBuilder builder = new SAXBuilder();
@@ -334,7 +334,7 @@ public class DitaParser {
 						MessageFormat mf = new MessageFormat("Referenced file {0} doesn't exist");
 						logger.log(Level.WARNING, mf.format(new Object[] { href }));
 					}
-				} catch (SAXException ex) {
+				} catch (IOException | SAXException ex) {
 					String lower = href.toLowerCase();
 					if (!(lower.endsWith(".eps") || lower.endsWith(".png") || lower.endsWith(".jpeg")
 							|| lower.endsWith(".jpg") || lower.endsWith(".pdf") || lower.endsWith(".tiff")
@@ -392,8 +392,9 @@ public class DitaParser {
 			}
 
 			if (!conkeyref.isEmpty()) {
-				String key = conkeyref.substring(0, conkeyref.indexOf('/'));
-				String id = conkeyref.substring(conkeyref.indexOf('/') + 1);
+			  int end = conkeyref.indexOf('/');
+        String key = end != -1 ? conkeyref.substring(0, end) : conkeyref;
+        String id = end != -1 ? conkeyref.substring(end + 1) : "";
 				Key k = rootScope.getKey(key);
 				if (k == null) {
 					MessageFormat mf = new MessageFormat("Key not defined for @conkeyref: \"{0}\".");
@@ -879,6 +880,11 @@ public class DitaParser {
 			dataLogger.log(new File(file).getName());
 		}
 		Document doc = builder.build(file);
+		if (id.isEmpty()) {
+      Element result = doc.getRootElement();
+      referenceChache.put(array, result);
+      return result;
+    }
 		Element result = locateReferenced(doc.getRootElement(), id);
 		if (result != null) {
 			referenceChache.put(array, result);

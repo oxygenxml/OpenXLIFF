@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.xml.Catalog;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
@@ -33,8 +35,6 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLUtils;
-
-import org.xml.sax.SAXException;
 
 public class Segmenter {
 
@@ -44,10 +44,10 @@ public class Segmenter {
 	private Map<String, String> tags;
 	private int tagId;
 
-	public Segmenter(String srxFile, String srcLanguage, String catalog)
+	public Segmenter(String srxFile, String srcLanguage, Catalog catalog)
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 		Document doc = builder.build(srxFile);
 		root = doc.getRootElement();
 		if (!root.getName().equals("srx")) {

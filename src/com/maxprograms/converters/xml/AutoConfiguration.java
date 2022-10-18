@@ -22,6 +22,8 @@ import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.xml.Catalog;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
@@ -30,8 +32,6 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
-
-import org.xml.sax.SAXException;
 
 public class AutoConfiguration {
 
@@ -42,10 +42,10 @@ public class AutoConfiguration {
 		// use run method instead
 	}
 
-	public static void run(String input, String out, String catalog)
+	public static void run(String input, String out, Catalog catalog)
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 		Document d = builder.build(input);
 		Element r = d.getRootElement();
 		segment = new HashMap<>();

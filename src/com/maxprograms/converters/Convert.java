@@ -32,6 +32,8 @@ import java.util.SortedMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.ditamap.DitaMap2Xliff;
 import com.maxprograms.converters.html.Html2Xliff;
 import com.maxprograms.converters.idml.Idml2Xliff;
@@ -61,8 +63,6 @@ import com.maxprograms.xml.Element;
 import com.maxprograms.xml.Indenter;
 import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.XMLOutputter;
-
-import org.xml.sax.SAXException;
 
 public class Convert {
 
@@ -447,7 +447,7 @@ public class Convert {
 			result = ToXliff2.run(new File(params.get("xliff")), params.get("catalog"));
 			if ("yes".equals(params.get("resegment")) && Constants.SUCCESS.equals(result.get(0))) {
 				result = Resegmenter.run(params.get("xliff"), params.get("srxFile"), params.get("srcLang"),
-						params.get("catalog"));
+				    new Catalog(params.get("catalog")));
 			}
 		}
 		return result;

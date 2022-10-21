@@ -446,8 +446,15 @@ public class Convert {
 		if ("yes".equals(params.get("xliff20")) && Constants.SUCCESS.equals(result.get(0))) {
 			result = ToXliff2.run(new File(params.get("xliff")), params.get("catalog"));
 			if ("yes".equals(params.get("resegment")) && Constants.SUCCESS.equals(result.get(0))) {
-				result = Resegmenter.run(params.get("xliff"), params.get("srxFile"), params.get("srcLang"),
-				    new Catalog(params.get("catalog")));
+			  try {
+			    result = Resegmenter.run(params.get("xliff"), params.get("srxFile"), params.get("srcLang"),
+			        new Catalog(params.get("catalog")));
+			  } catch (SAXException | IOException | ParserConfigurationException | URISyntaxException e) {
+			    Logger logger = System.getLogger(Convert.class.getName());
+			    logger.log(Level.ERROR, "Error re-segmenting XLIFF 2.0", e);
+			    result.add(Constants.ERROR);
+			    result.add(e.getMessage());
+			  }
 			}
 		}
 		return result;

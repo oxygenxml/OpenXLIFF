@@ -28,6 +28,8 @@ import java.util.StringTokenizer;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.xml.sax.SAXException;
+
 import com.maxprograms.converters.Constants;
 import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
@@ -37,8 +39,6 @@ import com.maxprograms.xml.Element;
 import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
-
-import org.xml.sax.SAXException;
 
 public class Html2Xliff {
 
@@ -99,7 +99,7 @@ public class Html2Xliff {
 		try {
 			if (!segByElement) {
 				String initSegmenter = params.get("srxFile");
-				segmenter = new Segmenter(initSegmenter, sourceLanguage, catalog);
+				segmenter = new Segmenter(initSegmenter, sourceLanguage, new Catalog(catalog));
 			}
 			try (FileInputStream input = new FileInputStream(inputFile)) {
 				skeleton = new FileOutputStream(skeletonFile);

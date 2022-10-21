@@ -82,7 +82,7 @@ public class Wpml2Xliff {
                 segmenter = new Segmenter(srxRules, sourceLanguage, catalog);
             }
             SAXBuilder builder = new SAXBuilder();
-            builder.setEntityResolver(new Catalog(catalog));
+            builder.setEntityResolver(catalog);
             Document doc = builder.build(inputFile);
             Element root = doc.getRootElement();
 

@@ -229,7 +229,7 @@ public class Xliff2Sdl {
 	private static void loadSkeleton()
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 		doc = builder.build(sklFile);
 		root = doc.getRootElement();
 	}
@@ -237,7 +237,7 @@ public class Xliff2Sdl {
 	private static void loadSegments()
 			throws SAXException, IOException, ParserConfigurationException, URISyntaxException {
 		SAXBuilder builder = new SAXBuilder();
-		builder.setEntityResolver(new Catalog(catalog));
+		builder.setEntityResolver(catalog);
 
 		Document xdoc = builder.build(xliffFile);
 		Element xroot = xdoc.getRootElement();

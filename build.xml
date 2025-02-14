@@ -55,6 +55,7 @@
         <copy file="removetargets.cmd" todir="dist" />
         <copy file="approveall.cmd" todir="dist" />
         <copy file="exporttmx.cmd" todir="dist" />
+        <copy file="iceMatches.cmd" todir="dist" />
     </target>
 
     <!-- Copy platform-specific shell scripts -->
@@ -70,6 +71,7 @@
         <copy file="removetargets.sh" todir="dist" />
         <copy file="approveall.sh" todir="dist" />
         <copy file="exporttmx.sh" todir="dist" />
+        <copy file="iceMatches.sh" todir="dist" />
         <chmod dir="dist" perm="ugo+rx" includes="**/*.sh" />
     </target>
 

@@ -6,7 +6,7 @@
     <version>27.1-SNAPSHOT</version>
   </parent>
   <artifactId>oxygen-pathced-openxliff</artifactId>
-  <version>1.0.0</version>
+  <version>4.2.0-SNAPSHOT</version>
   <dependencies>
 	  <dependency>
           <groupId>com.oxygenxml</groupId>
@@ -31,7 +31,7 @@
       <dependency>
           <groupId>org.json</groupId>
           <artifactId>json</artifactId>
-          <version>20220924</version>
+          <version>20250107</version>
       </dependency>
   </dependencies>
   

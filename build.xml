@@ -3,16 +3,21 @@
     <property name="target" value="17" />
     <property name="source" value="17" />
     <property name="build.compiler" value="javac10+" />
+    
+    <!-- Define classpath for external libraries -->
     <path id="OpenXLIFF.classpath">
         <pathelement location="lib/bcp47j.jar" />
         <pathelement location="lib/dtd.jar" />
         <pathelement location="lib/json.jar" />
         <pathelement location="lib/jsoup.jar" />
-    	<pathelement location="lib/xmljava.jar" />
+        <pathelement location="lib/xmljava.jar" />
     </path>
+
     <condition property="isWindows">
         <os family="windows" />
     </condition>
+
+    <!-- Initialize build directories -->
     <target name="init">
         <mkdir dir="bin" />
         <copy includeemptydirs="false" todir="bin">
@@ -21,27 +26,23 @@
             </fileset>
         </copy>
     </target>
+
+    <!-- Clean build directories -->
     <target name="clean">
         <delete dir="bin" />
+        <delete file="lib/openxliff.jar" />
     </target>
-    <target name="distclean">
-        <delete dir="dist" failonerror="false" />
-    </target>
+
+    <!-- Compile Java sources and package into a JAR -->
     <target name="compile" depends="clean,init">
         <description>Build jar file</description>
-        <delete file="lib/openxliff.jar" />
-        <javac srcdir="src" destdir="bin" classpathref="OpenXLIFF.classpath" modulepathref="OpenXLIFF.classpath" includeAntRuntime="false">
+        <javac srcdir="src" destdir="bin" classpathref="OpenXLIFF.classpath" includeAntRuntime="false">
             <compilerarg line="-encoding utf-8" />
         </javac>
         <jar destfile="lib/openxliff.jar" basedir="bin" />
     </target>
-    <target name="link" depends="distclean,compile">
-        <description>Build Java binaries</description>
-        <link destDir="dist" modulepath="lib:${java.home}/jmods" includeManPages="false" includeHeaders="false">
-            <module name="openxliff" />
-        </link>
-        <delete file="dist/lib/jrt-fs.jar" />
-    </target>
+
+    <!-- Copy platform-specific scripts -->
     <target name="copyBats" if="isWindows">
         <description>Copy .cmd to /dist</description>
         <copy file="convert.cmd" todir="dist" />
@@ -54,8 +55,9 @@
         <copy file="removetargets.cmd" todir="dist" />
         <copy file="approveall.cmd" todir="dist" />
         <copy file="exporttmx.cmd" todir="dist" />
-        <copy file="iceMatches.cmd" todir="dist" />
     </target>
+
+    <!-- Copy platform-specific shell scripts -->
     <target name="copyShells" unless="isWindows">
         <description>Copy .sh to /dist</description>
         <copy file="convert.sh" todir="dist" />
@@ -68,16 +70,11 @@
         <copy file="removetargets.sh" todir="dist" />
         <copy file="approveall.sh" todir="dist" />
         <copy file="exporttmx.sh" todir="dist" />
-        <copy file="iceMatches.sh" todir="dist" />
         <chmod dir="dist" perm="ugo+rx" includes="**/*.sh" />
     </target>
-    <target name="copyLicenses">
-        <description>Copy license info to /dist/</description>
-        <copy todir="dist/licenses">
-            <fileset dir="licenses" />
-        </copy>
-    </target>
-    <target name="dist" depends="link,copyBats,copyShells,copyLicenses">
+
+    <!-- Prepare the distribution folder -->
+    <target name="dist" depends="copyBats,copyShells">
         <description>Prepare distribution</description>
         <copy todir="dist/catalog">
             <fileset dir="catalog" />
@@ -90,4 +87,5 @@
         </copy>
         <copy file="LICENSE" todir="dist" />
     </target>
+
 </project>

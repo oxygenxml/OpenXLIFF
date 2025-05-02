@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -120,10 +121,13 @@ public class Xliff2DitaMap {
 			}
 			result.add(Constants.SUCCESS);
 		} catch (IOException | SAXException | ParserConfigurationException | URISyntaxException e) {
-			Logger logger = System.getLogger(Xliff2DitaMap.class.getName());
-			logger.log(Level.ERROR, Messages.getString("Xliff2DitaMap.1"), e);
+			if(!Optional.ofNullable(e.getMessage()).orElse("").contains("Cancelled")) {
+			  Logger logger = System.getLogger(Xliff2DitaMap.class.getName());
+              logger.log(Level.ERROR, Messages.getString("Xliff2DitaMap.1"), e);
+            }
 			result.add(Constants.ERROR);
-			result.add(e.getMessage());
+            result.add(e.getMessage());
+			
 		}
 		return result;
 	}

@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -302,7 +303,9 @@ public class DitaMap2Xliff {
 			}
 			result.add(Constants.SUCCESS);
 		} catch (Exception e) {
-			logger.log(Level.ERROR, Messages.getString("DitaMap2Xliff.05"), e);
+		    if(!Optional.ofNullable(e.getMessage()).orElse("").contains("Cancelled")) {
+		      logger.log(Level.ERROR, Messages.getString("DitaMap2Xliff.05"), e);
+		    }
 			result.add(Constants.ERROR);
 			result.add(e.getMessage());
 		}

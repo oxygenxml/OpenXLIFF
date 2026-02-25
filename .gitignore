@@ -6,3 +6,6 @@
 .dccache
 /.vscode/
 /target/
+.settings/*
+.classpath
+.project

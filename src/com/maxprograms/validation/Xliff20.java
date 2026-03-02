@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -54,7 +55,11 @@ public class Xliff20 {
 	private static final String XLIFF_CHANGETRACKING_2_0 = "urn:oasis:names:tc:xliff:changetracking:2.0";
 	private static final String XLIFF_METADATA_2_0 = "urn:oasis:names:tc:xliff:metadata:2.0";
 	private static final String XLIFF_DOCUMENT_2_0 = "urn:oasis:names:tc:xliff:document:2.0";
+	private static final String XLIFF_ITS_2_1 = "urn:oasis:names:tc:xliff:itsm:2.1";
+	private static final String XLIFF_DOCUMENT_2_2 = "urn:oasis:names:tc:xliff:document:2.2";
+	private static final String XLIFF_PGS_1_0 = "urn:oasis:names:tc:xliff:pgs:1.0";
 	private static final String W3_ORG_XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace";
+	private static final String W3_ORG_ITS_2_0 = "http://www.w3.org/2005/11/its/";
 
 	private static Logger logger = System.getLogger(Xliff20.class.getName());
 	private String reason = "";
@@ -78,13 +83,15 @@ public class Xliff20 {
 	private HashSet<String> noteId;
 	private HashSet<String> smId;
 	private HashSet<String> orderSet;
-	private Map<String, Element> unitSc;
+	private Map<String, Element> unitScSource;
+	private Map<String, Element> unitScTarget;
 	private int segCount;
 	private int maxSegment;
 	private boolean inMatch;
 	private boolean isReference;
 	private boolean inSource;
 	private boolean inTarget;
+	private boolean inResourceData;
 	private String fsPrefix = "fs";
 
 	private List<String> knownTypes = Arrays.asList("fmt", "ui", "quote", "link", "image", "other");
@@ -95,16 +102,34 @@ public class Xliff20 {
 		registry = new RegistryParser();
 	}
 
-	public boolean validate(String file, String catalog) {
+	public boolean validate(String file, String catalog, String version) {
 		try {
 			StreamSource source = new StreamSource(new File(file));
 			resolver = CatalogBuilder.getCatalog(catalog);
 			SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-			Source[] schemas = new Source[] { getSource(W3_ORG_XML_NAMESPACE), getSource(XLIFF_DOCUMENT_2_0),
-					getSource(XLIFF_METADATA_2_0), getSource(XLIFF_CHANGETRACKING_2_0), getSource(XLIFF_FS_2_0),
-					getSource(XLIFF_GLOSSARY_2_0), getSource(XLIFF_MATCHES_2_0), getSource(XLIFF_RESOURCEDATA_2_0),
-					getSource(XLIFF_SIZERESTRICTION_2_0), getSource(XLIFF_VALIDATION_2_0) };
-			Schema schema = schemaFactory.newSchema(schemas);
+			List<Source> schemas = new Vector<>();
+			schemas.add(getSource(W3_ORG_XML_NAMESPACE));
+			schemas.add(getSource(XLIFF_METADATA_2_0));
+			schemas.add(getSource(XLIFF_FS_2_0));
+			schemas.add(getSource(XLIFF_GLOSSARY_2_0));
+			schemas.add(getSource(XLIFF_MATCHES_2_0));
+			schemas.add(getSource(XLIFF_RESOURCEDATA_2_0));
+			schemas.add(getSource(XLIFF_SIZERESTRICTION_2_0));
+			schemas.add(getSource(XLIFF_VALIDATION_2_0));
+			if ("2.0".equals(version)) {
+				schemas.add(getSource(XLIFF_DOCUMENT_2_0));
+				schemas.add(getSource(XLIFF_CHANGETRACKING_2_0));
+			} else if ("2.1".equals(version)) {
+				schemas.add(getSource(XLIFF_DOCUMENT_2_0));
+				schemas.add(getSource(XLIFF_ITS_2_1));
+				schemas.add(getSource(W3_ORG_ITS_2_0));
+			} else if ("2.2".equals(version)) {
+				schemas.add(getSource(XLIFF_ITS_2_1));
+				schemas.add(getSource(XLIFF_DOCUMENT_2_2));
+				schemas.add(getSource(XLIFF_PGS_1_0));
+				schemas.add(getSource(W3_ORG_ITS_2_0));
+			}
+			Schema schema = schemaFactory.newSchema(schemas.toArray(new Source[0]));
 			schema.newValidator().validate(source);
 			return validateContent(file);
 		} catch (SAXException | IOException | ParserConfigurationException | URISyntaxException e) {
@@ -195,6 +220,13 @@ public class Xliff20 {
 						}
 						glossId.add(id);
 					}
+				}
+			}
+
+			if (XLIFF_RESOURCEDATA_2_0.equals(declaredNamespaces.get(namespace))) {
+				// In Resource Data module
+				if ("resourceItem".equals(e.getLocalName())) {
+					inResourceData = true;
 				}
 			}
 		}
@@ -310,6 +342,8 @@ public class Xliff20 {
 			smId = new HashSet<>();
 			orderSet = new HashSet<>();
 			sourceId = new HashSet<>();
+			unitScSource = new Hashtable<>();
+			unitScTarget = new Hashtable<>();
 		}
 
 		if ("ignorable".equals(e.getLocalName())) {
@@ -367,7 +401,6 @@ public class Xliff20 {
 				return false;
 			}
 			inSource = true;
-			unitSc = new Hashtable<>();
 			cantDelete = new HashSet<>();
 		}
 
@@ -377,7 +410,6 @@ public class Xliff20 {
 				reason = Messages.getString("Xliff20.21");
 				return false;
 			}
-			unitSc = new Hashtable<>();
 			if (!inMatch && !lang.isEmpty() && !trgLang.equals(lang)) {
 				reason = Messages.getString("Xliff20.22");
 				return false;
@@ -386,7 +418,7 @@ public class Xliff20 {
 				reason = Messages.getString("Xliff20.23");
 				return false;
 			}
-			if (!inMatch) {
+			if (!inMatch && !inResourceData) {
 				String order = e.getAttributeValue("order", "" + segCount);
 				int value = Integer.parseInt(order);
 				if (value > maxSegment) {
@@ -601,7 +633,11 @@ public class Xliff20 {
 		if ("sc".equals(e.getLocalName())) {
 			String id = e.getAttributeValue("id");
 			if (!"yes".equals(e.getAttributeValue("isolated"))) {
-				unitSc.put(id, e);
+				if (inTarget) {
+					unitScTarget.put(id, e);
+				} else {
+					unitScSource.put(id, e);
+				}
 			}
 			if (inSource) {
 				if (sourceId.contains(id)) {
@@ -702,12 +738,13 @@ public class Xliff20 {
 					reason = Messages.getString("Xliff20.67");
 					return false;
 				}
-				if (!unitSc.containsKey(startRef)) {
+				Map<String, Element> scMap = inTarget ? unitScTarget : unitScSource;
+				if (!scMap.containsKey(startRef)) {
 					MessageFormat mf = new MessageFormat(Messages.getString("Xliff20.68"));
 					reason = mf.format(new String[] { startRef });
 					return false;
 				}
-				Element sc = unitSc.get(startRef);
+				Element sc = scMap.get(startRef);
 				if (!sc.getAttributeValue("canCopy", "yes").equals(e.getAttributeValue("canCopy", "yes"))) {
 					MessageFormat mf = new MessageFormat(
 							Messages.getString("Xliff20.69"));
@@ -732,7 +769,7 @@ public class Xliff20 {
 					reason = mf.format(new String[] { startRef });
 					return false;
 				}
-				unitSc.remove(startRef);
+				scMap.remove(startRef);
 			}
 			boolean isCopy = !e.getAttributeValue("copyOf").isEmpty();
 			String dataRef = e.getAttributeValue("dataRef");
@@ -868,11 +905,14 @@ public class Xliff20 {
 			if ("source".equals(child.getLocalName())) {
 				inSource = false;
 			}
-			if (result && "source".equals(child.getName()) && !unitSc.isEmpty()) {
+		}
+
+		if ("unit".equals(e.getLocalName())) {
+			if (!unitScSource.isEmpty()) {
 				reason = Messages.getString("Xliff20.90");
 				return false;
 			}
-			if (result && "target".equals(child.getName()) && !unitSc.isEmpty()) {
+			if (!unitScTarget.isEmpty()) {
 				reason = Messages.getString("Xliff20.91");
 				return false;
 			}
@@ -881,6 +921,11 @@ public class Xliff20 {
 		if (XLIFF_MATCHES_2_0.equals(declaredNamespaces.get(namespace)) && "match".equals(e.getLocalName())) {
 			inMatch = false;
 			isReference = false;
+		}
+
+		if (XLIFF_RESOURCEDATA_2_0.equals(declaredNamespaces.get(namespace))
+				&& "resourceItem".equals(e.getLocalName())) {
+			inResourceData = false;
 		}
 
 		// remove namespaces declared in current element
@@ -1153,10 +1198,17 @@ public class Xliff20 {
 	}
 
 	private boolean checkLanguage(String lang) {
-		if (lang.startsWith("x-") || lang.startsWith("X-")) {
+		if (lang.isBlank()) {
+			return false;
+		}
+		if (lang.toLowerCase().startsWith("x-") && !lang.endsWith("-")) {
 			// custom language code
 			return true;
 		}
-		return !registry.getTagDescription(lang).isEmpty();
+		if (lang.toLowerCase().indexOf("-x-") > 1 && !lang.endsWith("-")) {
+			// private use subtag, e.g. "en-x-abc"
+			return true;
+		}
+		return lang.equalsIgnoreCase(registry.normalizeCode(lang));
 	}
 }

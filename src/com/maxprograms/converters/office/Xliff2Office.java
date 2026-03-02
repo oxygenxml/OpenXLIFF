@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -179,6 +179,7 @@ public class Xliff2Office {
 		builder.setEntityResolver(CatalogBuilder.getCatalog(catalog));
 		addPreserveSpace(doc.getRootElement());
 		XMLOutputter outputter = new XMLOutputter();
+		outputter.preserveSpace(true);
 		try (FileOutputStream output = new FileOutputStream(file)) {
 			outputter.output(doc, output);
 		}
@@ -221,6 +222,7 @@ public class Xliff2Office {
 		file.getChild("header").getChild("skl").getChild("external-file").setAttribute("href",
 				xliff.getAbsolutePath() + ".skl");
 		XMLOutputter outputter = new XMLOutputter();
+		outputter.preserveSpace(true);
 		try (FileOutputStream output = new FileOutputStream(xliff.getAbsolutePath())) {
 			outputter.output(doc, output);
 		}

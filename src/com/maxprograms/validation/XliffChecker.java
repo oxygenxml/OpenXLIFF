@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -81,9 +81,9 @@ public class XliffChecker {
 				help();
 				return;
 			}
-            if (arg.equals("-lang") && (i + 1) < fixedArgs.length) {
-                Locale.setDefault(Locale.forLanguageTag(fixedArgs[i + 1]));
-            }
+			if (arg.equals("-lang") && (i + 1) < fixedArgs.length) {
+				Locale.setDefault(Locale.forLanguageTag(fixedArgs[i + 1]));
+			}
 			if (arg.equals("-xliff") && (i + 1) < fixedArgs.length) {
 				xliff = fixedArgs[i + 1];
 			}
@@ -157,6 +157,35 @@ public class XliffChecker {
 		xliffNamespaces.add("urn:oasis:names:tc:xliff:document:1.2");
 	}
 
+	private String getCatalog(String version) {
+		String home = System.getenv("OpenXLIFF_HOME");
+		if (home == null) {
+			home = System.getProperty("user.dir");
+		}
+		File catalogFolder = new File(new File(home), "catalog");
+		if (!catalogFolder.exists()) {
+			logger.log(Level.ERROR, Messages.getString("XliffChecker.2"));
+		}
+		File validationFolder = new File(catalogFolder, "validation");
+		if (!validationFolder.exists()) {
+			logger.log(Level.ERROR, Messages.getString("XliffChecker.3"));
+		}
+
+		File catalog = null;
+		switch (version) {
+			case "2.0":
+				catalog = new File(validationFolder, "validation20.xml");
+				break;
+			case "2.1":
+				catalog = new File(validationFolder, "validation21.xml");
+				break;
+			case "2.2":
+				catalog = new File(validationFolder, "validation22.xml");
+				break;
+		}
+		return catalog.getAbsolutePath();
+	}
+
 	public boolean validate(String file, String catalog) {
 		try {
 			SAXBuilder builder = new SAXBuilder();
@@ -197,19 +226,14 @@ public class XliffChecker {
 					reason = validator.getReason();
 					return false;
 				}
-			} else if ("2.0".equals(version)) {
-				// validate with schemas only, for now
+			} else if ("2.0".equals(version) || "2.1".equals(version) || "2.2".equals(version)) {
 				Xliff20 validator = new Xliff20();
-				boolean valid = validator.validate(file, catalog);
+				boolean valid = validator.validate(file, getCatalog(version), version);
 				if (!valid) {
 					reason = validator.getReason();
 					return false;
 				}
 				return true;
-			} else if ("2.1".equals(version) || "2.2".equals(version)) {
-				MessageFormat mf = new MessageFormat(Messages.getString("XliffChecker.9"));
-				reason = mf.format(new String[] { version });
-				return false;
 			} else {
 				reason = Messages.getString("XliffChecker.10");
 				return false;
@@ -988,7 +1012,7 @@ public class XliffChecker {
 			return false;
 		}
 
-		// check for missing <trans-unite> referenced in <sub>
+		// check for missing <trans-unit> referenced in <sub>
 		if (e.getLocalName().equals("file")) {
 			Set<String> keys = xids.keySet();
 			Iterator<String> it = keys.iterator();
@@ -1020,7 +1044,6 @@ public class XliffChecker {
 	}
 
 	private static boolean checkDate(String date) {
-
 		// YYYY-MM-DDThh:mm:ssZ
 		if (date.length() != 20) {
 			return false;
@@ -1124,11 +1147,18 @@ public class XliffChecker {
 	}
 
 	private boolean checkLanguage(String lang) {
-		if (lang.startsWith("x-") || lang.startsWith("X-")) {
+		if (lang.isBlank()) {
+			return false;
+		}
+		if (lang.toLowerCase().startsWith("x-") && !lang.endsWith("-")) {
 			// custom language code
 			return true;
 		}
-		return !registry.getTagDescription(lang).isEmpty();
+		if (lang.toLowerCase().indexOf("-x-") > 1 && !lang.endsWith("-")) {
+			// private use tag, e.g. "en-x-abc"
+			return true;
+		}
+		return lang.equalsIgnoreCase(registry.normalizeCode(lang));
 	}
 
 }

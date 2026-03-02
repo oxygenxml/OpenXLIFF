@@ -2,21 +2,23 @@
 
 ![OpenXLIFF FIlters logo](openxliff_128.png)
 
-An open source set of Java filters for creating, merging and validating XLIFF 1.2, 2.0 and 2.1 files.
+An open source set of Java filters for creating, merging and validating XLIFF 1.2, 2.0, 2.1 and 2.2 files.
 
 With OpenXLIFF Filters you can create XLIFF files that don't use proprietary markup and are compatible with most CAT (Computer Asisted Translation) tools.
 
-- **[Releases](https://github.com/rmraya/OpenXLIFF#releases)**
+- **[Releases](https://github.com/rmraya/OpenXLIFF?tab=readme-ov-file#releases)**
 - **[Binary Downloads](https://www.maxprograms.com/products/openxliff.html)**
 - **[Filters Configuration](https://github.com/rmraya/OpenXLIFF#filters-configuration)**
-- **[Related Projects](https://github.com/rmraya/OpenXLIFF#related-projects)**
 - **[Supported File Formats](https://github.com/rmraya/OpenXLIFF#supported-file-formats)**
+- **[Building OpenXLIFF Filters](https://github.com/rmraya/OpenXLIFF/tree/master?tab=readme-ov-file#building-openxliff-filters)**
 
 ## Features
 
 - **[Convert Document to XLIFF](https://github.com/rmraya/OpenXLIFF#convert-document-to-xliff)**  
 - **[Convert XLIFF to Original Format](https://github.com/rmraya/OpenXLIFF#convert-xliff-to-original-format)**
 - **[XLIFF Validation](https://github.com/rmraya/OpenXLIFF#xliff-validation)**
+- **[Convert XLIFF 1.2 to XLIFF 2.x](https://github.com/rmraya/OpenXLIFF#convert-xliff-12-to-xliff-2x)**
+- **[Convert XLIFF 2.x to XLIFF 1.2](https://github.com/rmraya/OpenXLIFF#convert-xliff-2x-to-xliff-12)**
 - **[Recover ICE (In-Context Exact) Matches](https://github.com/rmraya/OpenXLIFF#recover-ice-in-context-exact-matches)**
 - **[Translation Status Analysis](https://github.com/rmraya/OpenXLIFF#translation-status-analysis)**
 - **[Join multiple XLIFF files](https://github.com/rmraya/OpenXLIFF#join-multiple-xliff-files)**
@@ -54,6 +56,13 @@ XML and JSON filters are configurable
 
 | Version | Comment | Release Date |
 |:-------:|---------|:------------:|
+|4.10.0 | Fixed validation and improved Office support | February 6th, 2026 |
+|4.9.1 | Fixed path handling for plain text files | November 19th, 2025 |
+|4.9.0 | Added validation of XLIFF 2.1 and 2.2, Segmenter pooling and improved TXLF support | November 1st, 2025 |
+|4.8.0 | Migrated to Gradle 8.14.3; Implemented metadata extraction from XLIFF 2.x files | August 2nd, 2025 |
+|4.7.0 | Improved support for JSON with custom configuration files | July 15th, 2025|
+|4.6.0 | Improved handling of tags from third-party XLIFF 2.x | June 22nd, 2025|
+|4.5.0 | Removed dependency on discontinued DTDParser library | May 24th, 2025|
 |4.3.0 | Added support for QTI files and packages; Implemented recovery of ICE matches; Added initial support for XLIFF 2.2 | February 23rd, 2025|
 |4.2.0 | Created skeleton folder when needed | January 3rd, 2025|
 |4.1.0 | Adjusted for [XLIFF Manager](https://github.com/rmraya/XLIFFManager) 8.0 | December 28th, 2024|
@@ -149,7 +158,7 @@ XML and JSON filters are configurable
 
 ## Supported File Formats
 
-OpenXLIFF Filters can generate XLIFF 1.2 and XLIFF 2.0 from these formats:
+OpenXLIFF Filters can generate XLIFF 1.2, 2.0, 2.1 and 2.2 from these formats:
 
 - **General Documentation**
   - Adobe InCopy ICML
@@ -188,23 +197,23 @@ OpenXLIFF Filters can generate XLIFF 1.2 and XLIFF 2.0 from these formats:
   - ResX (Windows .NET Resources)
   - TS (Qt Linguist translation source)
 
-## Requirements
+## Building OpenXLIFF Filters
+
+### Requirements
 
 - JDK 21 or newer is required for compiling and building. Pre-built binaries already include everything you need to run all options.
-- Apache Ant 1.10.13 or newer
+- Gradle 8.14.3 or newer. get it from [Gradle Releases](https://gradle.org/releases/).
 
-## Building
+### Steps for building
 
 - Checkout this repository.
 - Point your JAVA_HOME variable to JDK 21
-- Run `ant` to generate a binary distribution in `./dist`
-
-### Steps for building
+- Run `gradle` to generate a binary distribution in `./dist`
 
 ``` bash
   git clone https://github.com/rmraya/OpenXLIFF.git
   cd OpenXLIFF
-  ant
+  gradle
 ```
 
 A binary distribution will be created in `/dist` folder.
@@ -340,7 +349,7 @@ Where:
 
 ## XLIFF Validation
 
-The original [XLIFFChecker code](http://sourceforge.net/p/xliffchecker/code/) supports XLIFF 1.0, 1.1 and 1.2. The new version incorporated in OpenXLIFF Filters also supports XLIFF 2.0.
+The original [XLIFFChecker code](http://sourceforge.net/p/xliffchecker/code/) supports XLIFF 1.0, 1.1 and 1.2. The new version incorporated in OpenXLIFF Filters also supports XLIFF 2.0, 2.1 and 2.2.
 
 Standard XML Schema validation does not detect the use of duplicated 'id' attributes, wrong language codes and other constraints written in the different XLIFF specifications.
 
@@ -359,6 +368,43 @@ Where:
 
    -help:      (optional) Display this help information and exit
    -file:      XLIFF file to validate
+   -catalog:   (optional) XML catalog to use for processing
+```
+
+### Convert XLIFF 1.2 to XLIFF 2.x
+
+You can convert XLIFF 1.2 files to XLIFF 2.0, 2.1 or 2.2 using class `com.maxprograms.xliff2.ToXliff2` from your Java code or using the provided scripts.
+
+```text
+Usage:
+
+toxliff2.sh [-help] -source sourceFile -target targetFile [-2.0] [-2.1] [-2.2] [-catalog catalogFile] 
+
+Where:
+
+   -help:      (optional) display this help information and exit
+   -source:    XLIFF 1.2 file to convert
+   -target:    XLIFF 2.x to generate
+   -2.0:       (optional) generate XLIFF 2.0
+   -2.1:       (optional) generate XLIFF 2.1
+   -2.2:       (optional) generate XLIFF 2.2
+   -catalog:   (optional) XML catalog to use for processing
+```
+
+### Convert XLIFF 2.x to XLIFF 1.2
+
+You can convert XLIFF 2.0, 2.1 or 2.2 files to XLIFF 1.2 using class `com.maxprograms.xliff2.FromXliff2` from your Java code or using the provided scripts.
+
+```text
+Usage:
+
+fromxliff2.sh [-help] -source sourceFile -target targetFile [-catalog catalogFile] 
+
+Where:
+
+   -help:      (optional) display this help information and exit
+   -source:    XLIFF 2.x file to convert
+   -target:    XLIFF 1.2 to generate
    -catalog:   (optional) XML catalog to use for processing
 ```
 

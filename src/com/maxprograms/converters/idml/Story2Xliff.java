@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -27,8 +27,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.SAXException;
 
 import com.maxprograms.converters.Constants;
-import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
+import com.maxprograms.segmenter.SegmenterPool;
 import com.maxprograms.xml.Attribute;
 import com.maxprograms.xml.CatalogBuilder;
 import com.maxprograms.xml.Document;
@@ -37,6 +37,7 @@ import com.maxprograms.xml.PI;
 import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
+import com.maxprograms.xml.XMLUtils;
 
 public class Story2Xliff {
 	private static String inputFile;
@@ -44,7 +45,6 @@ public class Story2Xliff {
 	private static String sourceLanguage;
 	private static String targetLanguage;
 	private static String srcEncoding;
-	private static Segmenter segmenter;
 	private static FileOutputStream output;
 	private static FileOutputStream skeleton;
 	private static int id = 1;
@@ -67,6 +67,7 @@ public class Story2Xliff {
 		String initSegmenter = params.get("srxFile");
 		String catalog = params.get("catalog");
 		boolean paragraphSegmentation = false;
+		Segmenter segmenter = null;
 
 		if (elementSegmentation == null) {
 			paragraphSegmentation = false;
@@ -76,7 +77,7 @@ public class Story2Xliff {
 
 		try {
 			if (!paragraphSegmentation) {
-				segmenter = new Segmenter(initSegmenter, sourceLanguage, CatalogBuilder.getCatalog(catalog));
+				segmenter = SegmenterPool.getSegmenter(initSegmenter, sourceLanguage, CatalogBuilder.getCatalog(catalog));
 			}
 			skeleton = new FileOutputStream(skeletonFile);
 			output = new FileOutputStream(xliffFile);
@@ -99,7 +100,7 @@ public class Story2Xliff {
 			while (ia.hasNext()) {
 				Attribute a = ia.next();
 				writeSkeleton(
-						" " + a.getName() + "=\"" + Utils.cleanString(a.getValue()).replace("\"", "&quote;") + "\"");
+						" " + a.getName() + "=\"" + XMLUtils.cleanText(a.getValue()).replace("\"", "&quote;") + "\"");
 			}
 			writeSkeleton(">");
 
@@ -116,10 +117,10 @@ public class Story2Xliff {
 						while (ia.hasNext()) {
 							Attribute a = ia.next();
 							writeSkeleton(" " + a.getName() + "=\""
-									+ Utils.cleanString(a.getValue()).replaceAll("\"", "&quote;") + "\"");
+									+ XMLUtils.cleanText(a.getValue()).replaceAll("\"", "&quote;") + "\"");
 						}
 						writeSkeleton(">");
-						processStory(e);
+						processStory(segmenter, e);
 						writeSkeleton("</" + e.getName() + ">");
 					} else {
 						writeSkeleton(e.toString());
@@ -242,7 +243,7 @@ public class Story2Xliff {
 		skeleton.write(string.getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static void processStory(Element root) throws IOException {
+	private static void processStory(Segmenter segmenter, Element root) throws IOException {
 		List<XMLNode> content = root.getContent();
 		Iterator<XMLNode> nit = content.iterator();
 		while (nit.hasNext()) {
@@ -254,7 +255,7 @@ public class Story2Xliff {
 				Element e = (Element) n;
 				if (e.getName().equals("ParagraphStyleRange")) {
 					if (hasText(e)) {
-						processPara(e);
+						processPara(segmenter, e);
 					} else {
 						writeSkeleton(e.toString());
 					}
@@ -268,10 +269,10 @@ public class Story2Xliff {
 						while (ia.hasNext()) {
 							Attribute a = ia.next();
 							writeSkeleton(" " + a.getName() + "=\""
-									+ Utils.cleanString(a.getValue()).replace("\"", "&quote;") + "\"");
+									+ XMLUtils.cleanText(a.getValue()).replace("\"", "&quote;") + "\"");
 						}
 						writeSkeleton(">");
-						processStory(e);
+						processStory(segmenter, e);
 						writeSkeleton("</" + e.getName() + ">");
 					}
 				}
@@ -285,7 +286,7 @@ public class Story2Xliff {
 		}
 	}
 
-	private static void processPara(Element e) throws IOException {
+	private static void processPara(Segmenter segmenter, Element e) throws IOException {
 		cleanAttributes(e);
 		mergeStyles(e);
 		writeSkeleton("<" + e.getName());
@@ -294,7 +295,7 @@ public class Story2Xliff {
 		while (ia.hasNext()) {
 			Attribute a = ia.next();
 			writeSkeleton(
-					" " + a.getName() + "=\"" + Utils.cleanString(a.getValue()).replace("\"", "&quote;") + "\"");
+					" " + a.getName() + "=\"" + XMLUtils.cleanText(a.getValue()).replace("\"", "&quote;") + "\"");
 		}
 		writeSkeleton(">");
 		StringBuilder source = new StringBuilder("<ph>");
@@ -345,7 +346,7 @@ public class Story2Xliff {
 					if (segments[h].trim().isEmpty()) {
 						writeSkeleton(segments[h]);
 					} else {
-						writeSkeleton("%%%" + id + "%%%\n");
+						writeSkeleton("%%%" + id + "%%%");
 						writeString("<trans-unit id=\"" + id++ + "\" xml:space=\"preserve\">\n<source>" + segments[h]
 								+ "</source>\n</trans-unit>\n");
 					}
@@ -424,12 +425,17 @@ public class Story2Xliff {
 			Attribute a = atts.get(i);
 			result.setAttribute(a.getName(), a.getValue());
 		}
-		List<Element> children = e.getChildren();
-		Iterator<Element> it = children.iterator();
+		List<XMLNode> content = e.getContent();
+		Iterator<XMLNode> it = content.iterator();
 		while (it.hasNext()) {
-			Element child = it.next();
-			if (!child.getName().equals("Content")) {
-				result.addContent(getStyle(child));
+			XMLNode node = it.next();
+			if (node.getNodeType() == XMLNode.ELEMENT_NODE) {
+				Element child = (Element) node;
+				if (!child.getName().equals("Content")) {
+					result.addContent(getStyle(child));
+				}
+			} else if (node.getNodeType() == XMLNode.TEXT_NODE) {
+				result.addContent(node);
 			}
 		}
 		return result;
@@ -495,7 +501,7 @@ public class Story2Xliff {
 			result.append(string.substring(0, start));
 			string = string.substring(start);
 			int end = string.indexOf("</ph>");
-			String clean = Utils.cleanString(string.substring("<ph>".length(), end));
+			String clean = XMLUtils.cleanText(string.substring("<ph>".length(), end));
 			result.append("<ph id=\"");
 			result.append(id1++);
 			result.append("\">");
@@ -514,7 +520,7 @@ public class Story2Xliff {
 	private static String recurseElement(Element e) {
 		String result = "";
 		if (e.getName().equals("Content")) {
-			result = result + "<Content></ph>" + Utils.cleanString(e.getText()) + "<ph></Content>";
+			result = result + "<Content></ph>" + XMLUtils.cleanText(e.getText()) + "<ph></Content>";
 		} else {
 			result = result + "<" + e.getName();
 			List<Attribute> atts = e.getAttributes();
@@ -522,7 +528,7 @@ public class Story2Xliff {
 			while (ia.hasNext()) {
 				Attribute a = ia.next();
 				result = result + " " + a.getName() + "=\""
-						+ Utils.cleanString(a.getValue()).replace("\"", "&quote;") + "\"";
+						+ XMLUtils.cleanText(a.getValue()).replace("\"", "&quote;") + "\"";
 			}
 			if (e.getContent().isEmpty()) {
 				result = result + " />";
@@ -569,11 +575,11 @@ public class Story2Xliff {
 				+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
 				+ "xsi:schemaLocation=\"urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd\">\n");
 
-		writeString("<file original=\"" + Utils.cleanString(inputFile) + "\" source-language=\"" + sourceLanguage
+		writeString("<file original=\"" + XMLUtils.cleanText(inputFile) + "\" source-language=\"" + sourceLanguage
 				+ tgtLang + "\" datatype=\"" + format + "\">\n");
 		writeString("<header>\n");
 		writeString("   <skl>\n");
-		writeString("      <external-file href=\"" + Utils.cleanString(skeletonFile) + "\"/>\n");
+		writeString("      <external-file href=\"" + XMLUtils.cleanText(skeletonFile) + "\"/>\n");
 		writeString("   </skl>\n");
 		writeString("</header>\n");
 		writeString("<?encoding " + srcEncoding + "?>\n");

@@ -12,6 +12,10 @@
     <patched.artifactId>openxliff</patched.artifactId>
     <patched.version>4.10.2</patched.version>
     <patched.buildId>20260224_1746</patched.buildId>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    <target.jre.version>17</target.jre.version>
   </properties>
   <dependencies>
 	  <dependency>
@@ -40,13 +44,6 @@
           <version>20250107</version>
       </dependency>
   </dependencies>
-  
-  <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>17</maven.compiler.release>
-    <target.jre.version>17</target.jre.version>
-  </properties>
 
 <profiles>
 	  <profile>

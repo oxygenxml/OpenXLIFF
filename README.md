@@ -2,21 +2,22 @@
 
 ![OpenXLIFF FIlters logo](openxliff_128.png)
 
-An open source set of Java filters for creating, merging and validating XLIFF 1.2, 2.0 and 2.1 files.
+An open source set of Java filters for creating, merging and validating XLIFF 1.2, 2.0, 2.1 and 2.2 files.
 
 With OpenXLIFF Filters you can create XLIFF files that don't use proprietary markup and are compatible with most CAT (Computer Asisted Translation) tools.
 
-- **[Releases](https://github.com/rmraya/OpenXLIFF#releases)**
 - **[Binary Downloads](https://www.maxprograms.com/products/openxliff.html)**
 - **[Filters Configuration](https://github.com/rmraya/OpenXLIFF#filters-configuration)**
-- **[Related Projects](https://github.com/rmraya/OpenXLIFF#related-projects)**
 - **[Supported File Formats](https://github.com/rmraya/OpenXLIFF#supported-file-formats)**
+- **[Building OpenXLIFF Filters](https://github.com/rmraya/OpenXLIFF/tree/master?tab=readme-ov-file#building-openxliff-filters)**
 
 ## Features
 
 - **[Convert Document to XLIFF](https://github.com/rmraya/OpenXLIFF#convert-document-to-xliff)**  
 - **[Convert XLIFF to Original Format](https://github.com/rmraya/OpenXLIFF#convert-xliff-to-original-format)**
 - **[XLIFF Validation](https://github.com/rmraya/OpenXLIFF#xliff-validation)**
+- **[Convert XLIFF 1.2 to XLIFF 2.x](https://github.com/rmraya/OpenXLIFF#convert-xliff-12-to-xliff-2x)**
+- **[Convert XLIFF 2.x to XLIFF 1.2](https://github.com/rmraya/OpenXLIFF#convert-xliff-2x-to-xliff-12)**
 - **[Recover ICE (In-Context Exact) Matches](https://github.com/rmraya/OpenXLIFF#recover-ice-in-context-exact-matches)**
 - **[Translation Status Analysis](https://github.com/rmraya/OpenXLIFF#translation-status-analysis)**
 - **[Join multiple XLIFF files](https://github.com/rmraya/OpenXLIFF#join-multiple-xliff-files)**
@@ -50,106 +51,9 @@ XML and JSON filters are configurable
 | Latest    | :white_check_mark: |
 | Any other | :x:                |
 
-## Releases
-
-| Version | Comment | Release Date |
-|:-------:|---------|:------------:|
-|4.3.0 | Added support for QTI files and packages; Implemented recovery of ICE matches; Added initial support for XLIFF 2.2 | February 23rd, 2025|
-|4.2.0 | Created skeleton folder when needed | January 3rd, 2025|
-|4.1.0 | Adjusted for [XLIFF Manager](https://github.com/rmraya/XLIFFManager) 8.0 | December 28th, 2024|
-|4.0.0 | Updated [XMLJava](https://github.com/rmraya/XMLJava) to version 2.0.0 | December 15th, 2024|
-|3.25.0 | Handled locked status in SDLXLIFF files | November 24th, 2024|
-|3.24.0 | Added character count and improved JSON filter | November 14th, 2024|
-|3.23.0 | Migrated `.bat` scripts to `.cmd` | October 24th, 2024|
-|3.22.0 | Added option to ignore translatable SVG files when parsing DITA | September 26th, 2024|
-|3.21.0 | Fixed attributes parsing in HTML and improved JSON filter | August 29th, 2024|
-|3.20.0 | Improved region merging for Word documents | March 17th, 2024|
-|3.19.0 | Moved Language Tags handling to [BCP47J](https://github.com/rmraya/BCP47J) | March 7th, 2024|
-|3.18.0 | Fixed scope builder for DITA filter; removed Machine Translation engines | February 5th, 2024|
-|3.17.0 | Improved extraction from Word text boxes; switched to Java 21 | January 6th, 2024|
-|3.16.0 | Added catalog for XLIFF 2.2; adjusted ChatGPT models | October 29th, 2023|
-|3.15.0 | Added new options to JSON filter configuration | September 13th, 2023|
-|3.14.0 | Added option to generate XLIFF 2.1 | September 1st, 2023|
-|3.13.0 | Added export as TMX scripts; allowed relative paths from command line | August 27th, 2023|
-|3.12.0 | Improved JSON support and localization | August 16th, 2023|
-|3.11.0 | Improved SVG handling and language sorting | July 31st, 2023|
-|3.10.0 | Fixed TMX exports | July 10th, 2023|
-|3.9.0 | Improved Machine Translation support and internal code | June 30th, 2023|
-|3.8.0 | Improved localization handling | June 2nd, 2023|
-|3.7.0 | Extracted "alt" text from Word images | May 15th, 2023|
-|3.6.0 | Improved segmentation of XLIFF 2.0 | April 1st, 2023|
-|3.5.0 | Improved HTML filter | March 15th, 2023|
-|3.4.0 | Extracted localizable strings | February 27th, 2023|
-|3.3.0 | Detected loops while processing @keyref in DITA | February 20th, 2023|
-|3.2.0 | Improved file management | February 4th, 2023|
-|3.1.0 | Improved DITA merge | January 24th, 2023|
-|3.0.0 | Moved XML code to project [XMLJava](https://github.com/rmraya/XMLJava) | January 9th, 2023|
-|2.13.0 | Ignored tracked changes from Oxygen XML Editor | December 22nd, 2022|
-|2.12.0 | Added "xmlfilter" parameter to conversion options | December 5th, 2022|
-|2.11.0 | Improved support for DITA from Astoria CMS | December 2nd, 2022|
-|2.10.0 | Fixed DITA segmentation | November 22nd, 2022|
-|2.9.1 | Fixed joining of XLIFF 2.0 files and improved PHP Array support | October 22nd, 2022|
-|2.9.0 | Added support for PHP Arrays | October 21st, 2022|
-|2.8.0 | Updated TXLF, JSON and DITA filters | October 8th, 2022|
-|2.7.0 | Fixed resegmenter for XLIFF 2.0 | August 12th, 2022|
-|2.6.0 | Converted HTML fragments in Excel & Word files to tags | July 16th, 2022|
-|2.5.0 | Added configuration options to JSON filter; Added scripts to approve all segments; Updated language list | July 6th, 2022|
-|2.4.2 | Improved support for Trados Studio Packages | June 18th, 2022|
-|2.4.1 | Fixed conversion of third party XLIFF files | June 10th, 2022|
-|2.4.0 | Added remove all targets; added feedback for [Fluenta](https://www.maxprograms.com/products/fluenta.html) on DITA filter | June 9th, 2022|
-|2.3.0 | Added copy source to target; Fixed DITA conversion and merge | May 25th, 2022|
-|2.2.0 | Added pseudo-translation | May 11th, 2022|
-|2.1.0 | Updated dependencies and improved validation of XLIFF 2.x | April 21st, 2022|
-|2.0.0 | Moved server code to [XLIFF Manager](https://github.com/rmraya/XLIFFManager) project| March 29th, 2022|
-|1.17.5 | Updated DITA keyscope handling | March 18th, 2022|
-|1.17.4 | Fixed handling of nested untranslatables in DITA; Improved XLIFF 2.0 support | March 6th, 2022|
-|1.17.2 | Fixed support for FrameMaker MIF files | February 6th, 2022|
-|1.17.1 | Improved support for DITA | February 5th, 2022|
-|1.17.0 | Improved validation of XLIFF 2.0; Added SVG statistics for XLIFF 2.0 | December 1st, 2021|
-|1.16.0 | Improved support for XLIFF 2.0; Switched to Java 17 | November 23rd, 2021|
-|1.15.2 | MS Office and DITA fixes | November 13th, 2021|
-|1.15.0 | Initial support for RELAX NG gammars | November 8th, 2021|
-|1.14.0 | Improved segmentation for XLIFF 2.0 | October 3rd, 2021|
-|1.13.0 | Improved DITA support | August 31st, 2021|
-|1.12.7 | Improved round trip 1.2 -> 2.0 -> 1.2; Ignored untranslatable SVG in DITA maps | July 4th, 2021|
-|1.12.6 | Improved validation; updated language management | June 19th, 2021|
-|1.12.5 | Improved support for bilingual files | February 3rd, 2021|
-|1.12.4 | Allowed concurrent access for [XLIFF Validation](https://github.com/rmraya/XLIFFValidation) | January 22nd, 2021|
-|1.12.3 | Improved support for Trados Studio packages | January 1st, 2021|
-|1.12.2 | Suppressed output for confirmed empty targets | December 7th, 2020|
-|1.12.1 | Improved conversion of XLIFF 1.2 files | December 3rd, 2020|
-|1.12.0 | Added support for Adobe InCopy ICML and SRT subtitles | November 23rd, 2020|
-|1.11.1 | Fixed JSON encoding; fixed import of XLIFF matches | November 1st, 2020|
-|1.11.0 | Added support for JSON files | September 25, 2020|
-|1.10.1 | Fixed handling of TXLF files and improved XML catalog | September 5th, 2020|
-|1.10.0 | Added conversion of 3rd party XLIFF; improved support for XLIFF 2.0; fixed issues with Trados Studio packages | August 25th, 2020|
-|1.9.1 | Added improvements required by [Swordfish IV](https://github.com/rmraya/Swordfish). | August 13th, 2020|
-|1.9.0 | Added 5 Machine Translation (MT) engines (Google, Microsoft Azure, DeepL, MyMemory & Yandex) | May 18th, 2020|
-|1.8.4 | Improved catalog and other minor fixes | April 25th, 2020|
-|1.8.3 | Fixed conversion of PO files | April 17th, 2020|
-|1.8.2 | Switched to synchronized classes in XML package | April 10th, 2020|
-|1.8.1 | Improved support for Trados Studio packages | April 3rd, 2020|
-|1.8.0 | Implemented support for Trados Studio packages | March 29th, 2020|
-|1.7.0 | Major code cleanup; Changed segmentation model for XLIFF 2.0 | January 1st, 2020|
-|1.6.0 | Added support for XLIFF files from WPML WordPress Plugin | December 1st, 2019|
-|1.5.2 | Improved segmenter performance | October 29th, 2019|
-|1.5.1 | Fixed catalog on Windows | September 22nd, 2019|
-|1.5.0 | Improved support for empty &lt;xref/> elements in DITA; improved support for XML catalogs | September 5th, 2019|
-|1.4.2 | Added option to join XLIFF files; Fixed merge errors in XLIFF 2.0; added tool info to XLIFF files; cleaned DITA attributes on merging | August 14th, 2019|
-|1.4.1 | Improved performance embedding skeleton; added Apache Ant building option; renamed module to 'openxliff' | July 25th, 2019|
-|1.4.0 | Improved report of task results | July 17th, 2019|
-|1.3.3 | Fixed merging of MS Office files from XLIFF 2.0 | July 5th, 2019|
-|1.3.2 | Updated for Swordfish 3.4.3 | June 30th, 2019|
-|1.3.1 | Updated for Swordfish 3.4-0 | April 30th, 2019|
-|1.3.0 | Added option to export approved XLIFF segments as TMX | April 18th, 2019|
-|1.2.1 | Improved validation of XLIFF 2.0 | April 6th, 2019|
-|1.2.0 | Added Translation Status Analysis | March 3rd, 2019|
-|1.1.0 | Incorporated XLIFFChecker code| November 20th, 2018|
-|1.0.0 | Initial Release | November 12th, 2018|
-
 ## Supported File Formats
 
-OpenXLIFF Filters can generate XLIFF 1.2 and XLIFF 2.0 from these formats:
+OpenXLIFF Filters can generate XLIFF 1.2, 2.0, 2.1 and 2.2 from these formats:
 
 - **General Documentation**
   - Adobe InCopy ICML
@@ -188,23 +92,23 @@ OpenXLIFF Filters can generate XLIFF 1.2 and XLIFF 2.0 from these formats:
   - ResX (Windows .NET Resources)
   - TS (Qt Linguist translation source)
 
-## Requirements
+## Building OpenXLIFF Filters
+
+### Requirements
 
 - JDK 21 or newer is required for compiling and building. Pre-built binaries already include everything you need to run all options.
-- Apache Ant 1.10.13 or newer
+- Gradle 8.14.3 or newer. get it from [Gradle Releases](https://gradle.org/releases/).
 
-## Building
+### Steps for building
 
 - Checkout this repository.
 - Point your JAVA_HOME variable to JDK 21
-- Run `ant` to generate a binary distribution in `./dist`
-
-### Steps for building
+- Run `gradle` to generate a binary distribution in `./dist`
 
 ``` bash
   git clone https://github.com/rmraya/OpenXLIFF.git
   cd OpenXLIFF
-  ant
+  gradle
 ```
 
 A binary distribution will be created in `/dist` folder.
@@ -340,7 +244,7 @@ Where:
 
 ## XLIFF Validation
 
-The original [XLIFFChecker code](http://sourceforge.net/p/xliffchecker/code/) supports XLIFF 1.0, 1.1 and 1.2. The new version incorporated in OpenXLIFF Filters also supports XLIFF 2.0.
+The original [XLIFFChecker code](http://sourceforge.net/p/xliffchecker/code/) supports XLIFF 1.0, 1.1 and 1.2. The new version incorporated in OpenXLIFF Filters also supports XLIFF 2.0, 2.1 and 2.2.
 
 Standard XML Schema validation does not detect the use of duplicated 'id' attributes, wrong language codes and other constraints written in the different XLIFF specifications.
 
@@ -359,6 +263,43 @@ Where:
 
    -help:      (optional) Display this help information and exit
    -file:      XLIFF file to validate
+   -catalog:   (optional) XML catalog to use for processing
+```
+
+### Convert XLIFF 1.2 to XLIFF 2.x
+
+You can convert XLIFF 1.2 files to XLIFF 2.0, 2.1 or 2.2 using class `com.maxprograms.xliff2.ToXliff2` from your Java code or using the provided scripts.
+
+```text
+Usage:
+
+toxliff2.sh [-help] -source sourceFile -target targetFile [-2.0] [-2.1] [-2.2] [-catalog catalogFile] 
+
+Where:
+
+   -help:      (optional) display this help information and exit
+   -source:    XLIFF 1.2 file to convert
+   -target:    XLIFF 2.x to generate
+   -2.0:       (optional) generate XLIFF 2.0
+   -2.1:       (optional) generate XLIFF 2.1
+   -2.2:       (optional) generate XLIFF 2.2
+   -catalog:   (optional) XML catalog to use for processing
+```
+
+### Convert XLIFF 2.x to XLIFF 1.2
+
+You can convert XLIFF 2.0, 2.1 or 2.2 files to XLIFF 1.2 using class `com.maxprograms.xliff2.FromXliff2` from your Java code or using the provided scripts.
+
+```text
+Usage:
+
+fromxliff2.sh [-help] -source sourceFile -target targetFile [-catalog catalogFile] 
+
+Where:
+
+   -help:      (optional) display this help information and exit
+   -source:    XLIFF 2.x file to convert
+   -target:    XLIFF 1.2 to generate
    -catalog:   (optional) XML catalog to use for processing
 ```
 

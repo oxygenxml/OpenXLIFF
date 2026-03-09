@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -111,7 +111,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}
@@ -121,7 +121,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}
@@ -131,7 +131,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}
@@ -352,7 +352,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}
@@ -362,7 +362,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}
@@ -372,7 +372,7 @@ public class Segmenter {
 						if (breaks) {
 							parts.add(pureText.substring(0, pos));
 							pureText = pureText.substring(pos);
-							pos = 0;
+							pos = -1;
 						}
 						break;
 					}

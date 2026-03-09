@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -29,20 +29,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.maxprograms.converters.Constants;
-import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
+import com.maxprograms.segmenter.SegmenterPool;
 import com.maxprograms.xml.Catalog;
 import com.maxprograms.xml.CatalogBuilder;
 import com.maxprograms.xml.Element;
+import com.maxprograms.xml.XMLUtils;
 
 public class Php2Xliff {
 
-	private static int segId;
-	private static Pattern pattern;
-	private static Pattern endPattern;
-	private static Segmenter segmenter;
-	private static String sourceLanguage;
-	private static boolean paragraphSegmentation;
+	private static final Pattern START_TAG_PATTERN = Pattern.compile("<[A-Za-z0-9]+([\\s][A-Za-z\\-\\.]+=[\"|\'][^<&>]*[\"|\'])[\\s]*/?>");
+	private static final Pattern END_TAG_PATTERN = Pattern.compile("</[A-Za-z0-9]+>");
+
+	private static final class Context {
+		int segId;
+		String sourceLanguage;
+		boolean paragraphSegmentation;
+		Segmenter segmenter;
+	}
 
 	private Php2Xliff() {
 		// do not instantiate this class
@@ -51,29 +55,23 @@ public class Php2Xliff {
 
 	public static List<String> run(Map<String, String> params) {
 		List<String> result = new Vector<>();
-		if (pattern == null) {
-			pattern = Pattern.compile("<[A-Za-z0-9]+([\\s][A-Za-z\\-\\.]+=[\"|\'][^<&>]*[\"|\'])*[\\s]*/?>");
-		}
-		if (endPattern == null) {
-			endPattern = Pattern.compile("</[A-Za-z0-9]+>");
-		}
-
-		segId = 0;
+		Context ctx = new Context();
+		ctx.segId = 0;
 
 		String inputFile = params.get("source");
 		String xliffFile = params.get("xliff");
 		String skeletonFile = params.get("skeleton");
-		sourceLanguage = params.get("srcLang");
+		ctx.sourceLanguage = params.get("srcLang");
 		String targetLanguage = params.get("tgtLang");
 		String srcEncoding = params.get("srcEncoding");
 		String paragraph = params.get("paragraph");
-		paragraphSegmentation = "yes".equals(paragraph);
+		ctx.paragraphSegmentation = "yes".equals(paragraph);
 		String initSegmenter = params.get("srxFile");
 
 		try {
 			Catalog catalog = CatalogBuilder.getCatalog(params.get("catalog"));
-			if (!paragraphSegmentation) {
-				segmenter = new Segmenter(initSegmenter, sourceLanguage, catalog);
+			if (!ctx.paragraphSegmentation) {
+				ctx.segmenter = SegmenterPool.getSegmenter(initSegmenter, ctx.sourceLanguage, catalog);
 			}
 
 			try (FileOutputStream output = new FileOutputStream(xliffFile)) {
@@ -89,12 +87,12 @@ public class Php2Xliff {
 				}
 
 				writeString(output, "<file original=\"" + inputFile
-						+ "\" source-language=\"" + sourceLanguage
+					+ "\" source-language=\"" + ctx.sourceLanguage
 						+ target
 						+ "\" datatype=\"x-phparray\">\n");
 				writeString(output, "<header>\n");
 				writeString(output, "   <skl>\n");
-				writeString(output, "      <external-file href=\"" + Utils.cleanString(skeletonFile) + "\"/>\n");
+				writeString(output, "      <external-file href=\"" + XMLUtils.cleanText(skeletonFile) + "\"/>\n");
 				writeString(output, "   </skl>\n");
 				writeString(output, "   <tool tool-version=\"" + Constants.VERSION + " " + Constants.BUILD
 						+ "\" tool-id=\"" + Constants.TOOLID + "\" tool-name=\"" + Constants.TOOLNAME + "\"/>\n");
@@ -183,7 +181,7 @@ public class Php2Xliff {
 									break;
 								}
 							}
-							writeSegment(output, skeleton, value);
+							writeSegment(ctx, output, skeleton, value);
 							text = text.substring(value.length());
 						}
 					} while (!finished);
@@ -213,7 +211,7 @@ public class Php2Xliff {
 		skeleton.write(string.getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static void writeSegment(FileOutputStream output, FileOutputStream skeleton, String source)
+	private static void writeSegment(Context ctx, FileOutputStream output, FileOutputStream skeleton, String source)
 			throws IOException {
 		source = source.replace("\\'", "'");
 		source = source.replace("\\\"", "\"");
@@ -223,27 +221,27 @@ public class Php2Xliff {
 		source = source.substring(0, source.length() - 1);
 		writeSkeleton(skeleton, delimiter);
 		String[] segments;
-		if (!paragraphSegmentation) {
-			segments = segmenter.segment(source);
+		if (!ctx.paragraphSegmentation) {
+			segments = ctx.segmenter.segment(source);
 		} else {
 			segments = new String[] { source };
 		}
 		for (int i = 0; i < segments.length; i++) {
-			if (Utils.cleanString(segments[i]).trim().equals("")) {
+			if (XMLUtils.cleanText(segments[i]).trim().equals("")) {
 				writeSkeleton(skeleton, segments[i]);
 			} else {
 				String string = segments[i];
 				if (hasHtml(string)) {
 					string = fixHtml(string);
 				} else {
-					string = Utils.cleanString(string);
+					string = XMLUtils.cleanText(string);
 				}
-				writeString(output, "   <trans-unit id=\"" + segId
+				writeString(output, "   <trans-unit id=\"" + ctx.segId
 						+ "\" xml:space=\"preserve\" approved=\"no\">\n"
-						+ "      <source xml:lang=\"" + sourceLanguage + "\">"
+						+ "      <source xml:lang=\"" + ctx.sourceLanguage + "\">"
 						+ string + "</source>\n");
 				writeString(output, "   </trans-unit>\n");
-				writeSkeleton(skeleton, "%%%" + segId++ + "%%%");
+				writeSkeleton(skeleton, "%%%" + ctx.segId++ + "%%%");
 			}
 		}
 		writeSkeleton(skeleton, delimiter);
@@ -253,7 +251,7 @@ public class Php2Xliff {
 		String temp = "";
 		int count = 0;
 		Map<String, Element> table = new Hashtable<>();
-		Matcher matcher = pattern.matcher(text);
+		Matcher matcher = START_TAG_PATTERN.matcher(text);
 		if (matcher.find()) {
 			matcher.reset();
 			while (matcher.find()) {
@@ -272,14 +270,14 @@ public class Php2Xliff {
 				temp = temp + "[[[" + count + "]]]";
 
 				text = text.substring(end);
-				matcher = pattern.matcher(text);
+				matcher = START_TAG_PATTERN.matcher(text);
 				count++;
 			}
 			temp = temp + text;
 		} else {
 			temp = text;
 		}
-		matcher = endPattern.matcher(temp);
+		matcher = END_TAG_PATTERN.matcher(temp);
 		String result = "";
 		if (matcher.find()) {
 			matcher.reset();
@@ -299,7 +297,7 @@ public class Php2Xliff {
 				result = result + "[[[" + count + "]]]";
 
 				temp = temp.substring(end);
-				matcher = pattern.matcher(temp);
+				matcher = START_TAG_PATTERN.matcher(temp);
 				count++;
 			}
 			result = result + temp;
@@ -307,7 +305,7 @@ public class Php2Xliff {
 			result = temp;
 		}
 
-		result = Utils.cleanString(result);
+		result = XMLUtils.cleanText(result);
 
 		Set<String> keys = table.keySet();
 		Iterator<String> it = keys.iterator();
@@ -327,11 +325,11 @@ public class Php2Xliff {
 	}
 
 	private static boolean hasHtml(String source) {
-		Matcher matcher = pattern.matcher(source);
+		Matcher matcher = START_TAG_PATTERN.matcher(source);
 		if (matcher.find()) {
 			return true;
 		}
-		matcher = endPattern.matcher(source);
+		matcher = END_TAG_PATTERN.matcher(source);
 		return matcher.find();
 	}
 }

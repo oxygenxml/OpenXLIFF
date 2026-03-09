@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -41,21 +41,22 @@ import com.maxprograms.converters.Constants;
 import com.maxprograms.converters.Utils;
 import com.maxprograms.converters.qti.QtiCheck;
 import com.maxprograms.segmenter.Segmenter;
+import com.maxprograms.segmenter.SegmenterPool;
 import com.maxprograms.xml.Attribute;
 import com.maxprograms.xml.CData;
 import com.maxprograms.xml.Catalog;
 import com.maxprograms.xml.CatalogBuilder;
 import com.maxprograms.xml.Comment;
+import com.maxprograms.xml.DTDParser;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
+import com.maxprograms.xml.Grammar;
 import com.maxprograms.xml.PI;
 import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.SilentErrorHandler;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLUtils;
-import com.wutka.dtd.DTD;
-import com.wutka.dtd.DTDParser;
 
 public class Xml2Xliff {
 
@@ -81,7 +82,6 @@ public class Xml2Xliff {
 	private static Map<String, String> ctypes;
 	private static Map<String, String> keepFormating;
 	private static boolean segByElement;
-	private static Segmenter segmenter;
 	private static Catalog catalog;
 	private static String rootElement;
 	private static Map<String, String> entities;
@@ -135,6 +135,7 @@ public class Xml2Xliff {
 		resx = isResx != null;
 		ditaBased = "yes".equals(params.get("dita_based"));
 		qtiBased = "yes".equals(params.get("qti"));
+		Segmenter segmenter = null;
 
 		String ignoreTrackedChanges = params.get("ignoretc");
 		if (ignoreTrackedChanges != null) {
@@ -186,7 +187,7 @@ public class Xml2Xliff {
 			}
 
 			if (!segByElement) {
-				segmenter = new Segmenter(initSegmenter, sourceLanguage, catalog);
+				segmenter = SegmenterPool.getSegmenter(initSegmenter, sourceLanguage, catalog);
 			}
 
 			String detected = getEncoding(inputFile);
@@ -233,7 +234,7 @@ public class Xml2Xliff {
 
 				buildList();
 
-				processList();
+				processList(segmenter);
 
 				skeleton.close();
 				writeString("</body>\n");
@@ -464,10 +465,11 @@ public class Xml2Xliff {
 		String result = null;
 		File dtd = new File(file);
 		try {
-			DTDParser parser = new DTDParser(dtd);
-			DTD d = parser.parse(true);
-			if (d != null && d.rootElement != null) {
-				result = d.rootElement.getName();
+			DTDParser parser = new DTDParser();
+			Grammar grammar = parser.parse(dtd);
+			String root = grammar.getRootElement();
+			if (!root.isEmpty()) {
+				result = root;
 			}
 		} catch (Exception e) {
 			// do nothing
@@ -496,7 +498,7 @@ public class Xml2Xliff {
 				+ "\" datatype=\"" + format + "\" tool-id=\"" + Constants.TOOLID + "\">\n");
 		writeString("<header>\n");
 		writeString("   <skl>\n");
-		writeString("      <external-file href=\"" + Utils.cleanString(skeletonFile) + "\"/>\n");
+		writeString("      <external-file href=\"" + XMLUtils.cleanText(skeletonFile) + "\"/>\n");
 		writeString("   </skl>\n");
 		if (!entitiesMap.isEmpty()) {
 			writeString("   <prop-group name=\"entities\">\n" + entitiesMap + "   </prop-group>\n");
@@ -514,7 +516,8 @@ public class Xml2Xliff {
 		writeString("<body>\n");
 	}
 
-	private static void processList() throws IOException, SAXException, ParserConfigurationException {
+	private static void processList(Segmenter segmenter)
+			throws IOException, SAXException, ParserConfigurationException {
 		for (int i = 0; i < segments.size(); i++) {
 			String txt = segments.get(i);
 			if (txt.startsWith("" + '\u007F' + "" + '\u007F')) {
@@ -540,11 +543,8 @@ public class Xml2Xliff {
 			}
 			tagId = 0;
 			txt = addTags(txt);
-			if (segByElement) {
+			if (segmenter != null) {
 				txt = txt.replace(Segmenter.STARTIGNORE, "");
-				txt = txt.replace(Segmenter.ENDIGNORE, "");
-				writeSegment(txt);
-			} else {
 				String[] segs = segmenter.segment(txt);
 				for (int h = 0; h < segs.length; h++) {
 					String seg = segs[h];
@@ -554,6 +554,10 @@ public class Xml2Xliff {
 					}
 					writeSegment(seg);
 				}
+			} else {
+				String seg = txt.replace(Segmenter.STARTIGNORE, "");
+				seg = seg.replace(Segmenter.ENDIGNORE, "");
+				writeSegment(seg);
 			}
 		}
 	}

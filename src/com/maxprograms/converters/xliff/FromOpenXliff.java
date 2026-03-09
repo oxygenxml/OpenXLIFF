@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 1.0 which accompanies this distribution,
@@ -29,6 +29,9 @@ import java.util.Vector;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
 import com.maxprograms.converters.Constants;
@@ -53,6 +56,9 @@ public class FromOpenXliff {
     private static String tgtLang;
     private static boolean hasTarget;
     private static int auto;
+    private static String currentFile;
+    private static Map<String, Element> fileMetadata;
+    private static Map<String, Element> unitMetadata;
 
     private FromOpenXliff() {
         // do not instantiate this class
@@ -65,6 +71,8 @@ public class FromOpenXliff {
         String xliffFile = params.get("xliff");
         String sklFile = params.get("skeleton");
         String outputFile = params.get("backfile");
+        fileMetadata = new Hashtable<>();
+        unitMetadata = new Hashtable<>();
         try {
             catalog = CatalogBuilder.getCatalog(params.get("catalog"));
             loadXliff(xliffFile);
@@ -119,6 +127,10 @@ public class FromOpenXliff {
     private static void recurse1x(Element root) throws SAXException, IOException, ParserConfigurationException {
         if ("file".equals(root.getName())) {
             tgtLang = root.getAttributeValue("target-language");
+            String original = root.getAttributeValue("original");
+            if (fileMetadata.containsKey(original)) {
+                root.addContent(fileMetadata.get(original));
+            }
         }
         if ("trans-unit".equals(root.getName()) && !root.getAttributeValue("translate").equals("no")) {
             Element segSource = root.getChild("seg-source");
@@ -143,7 +155,7 @@ public class FromOpenXliff {
                             String pi = e.getPI(Constants.TOOLID).get(0).getData();
                             Element segment = segments.get(pi);
                             if (segment.getAttributeValue("approved").equals("yes")) {
-                                Element mrk = ToOpenXliff.locateMrk(target, e.getAttributeValue("mid"));
+                                Element mrk = Xliff1xProcessor.locateMrk(target, e.getAttributeValue("mid"));
                                 mrk.setContent(segment.getChild("target").getContent());
                                 if (!mrk.getChildren().isEmpty()) {
                                     replaceTags(mrk, 1);
@@ -282,7 +294,38 @@ public class FromOpenXliff {
     }
 
     private static void recurse2x(Element root) throws SAXException, IOException, ParserConfigurationException {
+        if ("file".equals(root.getName())) {
+            currentFile = root.getAttributeValue("id");
+            Element sklMetadata = root.getChild("mda:metadata");
+            Element xliffMetadata = fileMetadata.get(currentFile);
+            if (sklMetadata != null && xliffMetadata == null) {
+                // remove old metadata
+                root.removeChild(sklMetadata);
+            } else if (sklMetadata == null && xliffMetadata != null) {
+                Element metadata = new Element("mda:metadata");
+                metadata.clone(xliffMetadata);
+                List<XMLNode> content = root.getContent();
+                content.add(0, metadata);
+                root.setContent(content);
+            } else if (sklMetadata != null && xliffMetadata != null) {
+                sklMetadata.clone(xliffMetadata);
+            }
+        }
         if ("unit".equals(root.getName()) && !root.getAttributeValue("translate").equals("no")) {
+            Element sklMetadata = root.getChild("mda:metadata");
+            String id = root.getChildren("segment").get(0).getPI(Constants.TOOLID).get(0).getData();
+            Element xliffMetadata = unitMetadata.get(id);
+            if (sklMetadata != null && xliffMetadata == null) {
+                root.removeChild(sklMetadata);
+            } else if (sklMetadata == null && xliffMetadata != null) {
+                Element metadata = new Element("mda:metadata");
+                metadata.clone(xliffMetadata);
+                List<XMLNode> content = root.getContent();
+                content.add(0, metadata);
+                root.setContent(content);
+            } else if (sklMetadata != null && xliffMetadata != null) {
+                sklMetadata.clone(xliffMetadata);
+            }
             List<Element> children = root.getChildren("segment");
             Iterator<Element> it = children.iterator();
             while (it.hasNext()) {
@@ -332,18 +375,99 @@ public class FromOpenXliff {
         if ("xliff".equals(e.getName()) && !"1.2".equals(e.getAttributeValue("version"))) {
             throw new IOException(Messages.getString("FromOpenXliff.2"));
         }
-        if ("file".equals(e.getName()) && tgtLang.isEmpty()) {
-            tgtLang = e.getAttributeValue("target-language");
-        }
-        if ("trans-unit".equals(e.getName())) {
-            segments.put(e.getAttributeValue("id"), e);
-        } else {
-            List<Element> children = e.getChildren();
-            Iterator<Element> it = children.iterator();
-            while (it.hasNext()) {
-                recurseXliff(it.next());
+        if ("file".equals(e.getName())) {
+            List<PI> pi = e.getPI("ts");
+            if (!pi.isEmpty()) {
+                String json = pi.get(0).getData();
+                if (json != null && !json.isEmpty()) {
+                    JSONObject obj = new JSONObject(json);
+                    if (obj.has("id")) {
+                        // original was XLIFF 2.x
+                        currentFile = obj.getString("id");
+                    } else if (obj.has("original")) {
+                        // original was XLIFF 1.x
+                        currentFile = obj.getString("original");
+                    }
+                }
+            } else if (e.hasAttribute("ts")) {
+                String json = e.getAttributeValue("ts");
+                if (json != null && !json.isEmpty()) {
+                    JSONObject obj = new JSONObject(json);
+                    if (obj.has("id")) {
+                        // original was XLIFF 2.x
+                        currentFile = obj.getString("id");
+                    } else if (obj.has("original")) {
+                        // original was XLIFF 1.x
+                        currentFile = obj.getString("original");
+                    }
+                }
+            }
+            if (tgtLang.isEmpty()) {
+                tgtLang = e.getAttributeValue("target-language");
+            }
+            List<PI> metadata = e.getPI("metadata");
+            if (!metadata.isEmpty()) {
+                fileMetadata.put(currentFile, toMetadata(metadata.get(0).getData()));
             }
         }
+        if ("trans-unit".equals(e.getName())) {
+            String id = e.getAttributeValue("id");
+            segments.put(currentFile + "_" + id, e);
+            List<PI> metadata = e.getPI("metadata");
+            if (!metadata.isEmpty()) {
+                String data = metadata.get(0).getData();
+                Element unitData = toMetadata(data);
+                unitMetadata.put(currentFile + "_" + id, unitData);
+            }
+            return;
+        }
+        List<Element> children = e.getChildren();
+        Iterator<Element> it = children.iterator();
+        while (it.hasNext()) {
+            recurseXliff(it.next());
+        }
+    }
+
+    private static Element toMetadata(String string) {
+        Element metadata = new Element("mda:metadata");
+        try {
+            JSONObject json = new JSONObject(string);
+            if (json.has("data")) {
+                JSONArray groups = json.getJSONArray("data");
+                for (int i = 0; i < groups.length(); i++) {
+                    JSONObject group = groups.getJSONObject(i);
+                    Element g = new Element("mda:metaGroup");
+                    metadata.addContent(g);
+                    if (group.has("id")) {
+                        g.setAttribute("id", group.getString("id"));
+                    }
+                    if (group.has("category")) {
+                        g.setAttribute("category", group.getString("category"));
+                    }
+                    if (group.has("appliesTo")) {
+                        g.setAttribute("appliesTo", group.getString("appliesTo"));
+                    }
+                    if (group.has("meta")) {
+                        JSONArray metas = group.getJSONArray("meta");
+                        for (int j = 0; j < metas.length(); j++) {
+                            JSONObject meta = metas.getJSONObject(j);
+                            Element m = new Element("mda:meta");
+                            g.addContent(m);
+                            if (meta.has("type")) {
+                                m.setAttribute("type", meta.getString("type"));
+                            }
+                            if (meta.has("value")) {
+                                m.setText(meta.getString("value"));
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (JSONException ex) {
+            Logger logger = System.getLogger(FromOpenXliff.class.getName());
+            logger.log(Level.ERROR, Messages.getString("FromOpenXliff.3"), ex);
+        }
+        return metadata;
     }
 
     private static void loadSkeleton(String sklFile) throws SAXException, IOException, ParserConfigurationException {

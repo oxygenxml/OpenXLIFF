@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -26,9 +26,12 @@ import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
 import com.maxprograms.converters.Constants;
+import com.maxprograms.converters.Convert;
+import com.maxprograms.converters.Utils;
 import com.maxprograms.xml.Attribute;
 import com.maxprograms.xml.CatalogBuilder;
 import com.maxprograms.xml.Document;
@@ -42,6 +45,8 @@ import com.maxprograms.xml.XMLUtils;
 
 public class ToXliff2 {
 
+	private static Logger logger = System.getLogger(ToXliff2.class.getName());
+
 	private static Element root2;
 	private static int fileId;
 	private static int mrkCount;
@@ -54,6 +59,66 @@ public class ToXliff2 {
 	private ToXliff2() {
 		// do not instantiate this class
 		// use run or main methods instead
+	}
+
+	public static void main(String[] args) {
+		String[] arguments = Utils.fixPath(args);
+		if (arguments.length < 4) {
+			help();
+			return;
+		}
+
+		String sourceFile = "";
+		String targetFile = "";
+		String version = "2.1";
+		String catalog = "";
+
+		for (int i = 0; i < arguments.length; i++) {
+			String arg = arguments[i];
+			if (arg.equals("-help")) {
+				help();
+				return;
+			}
+			if ("-source".equals(arg) && (i + 1) < arguments.length) {
+				sourceFile = arguments[i + 1];
+			}
+			if ("-target".equals(arg) && (i + 1) < arguments.length) {
+				targetFile = arguments[i + 1];
+			}
+			if ("-2.0".equals(arg)) {
+				version = "2.0";
+			}
+			if ("-2.1".equals(arg)) {
+				version = "2.1";
+			}
+			if ("-2.2".equals(arg)) {
+				version = "2.2";
+			}
+			if (arg.equals("-catalog") && (i + 1) < arguments.length) {
+				catalog = arguments[i + 1];
+			}
+		}
+
+		if (catalog.isEmpty()) {
+			try {
+				catalog = Convert.defaultCatalog();
+			} catch (IOException e) {
+				logger.log(Level.ERROR, e.getMessage());
+				return;
+			}
+		}
+		if (sourceFile.isEmpty()) {
+			logger.log(Level.ERROR, Messages.getString("ToXliff2.5"));
+			return;
+		}
+		if (targetFile.isEmpty()) {
+			logger.log(Level.ERROR, Messages.getString("ToXliff2.6"));
+			return;
+		}
+		List<String> result = run(sourceFile, targetFile, catalog, version);
+		if (!result.get(0).equals(Constants.SUCCESS)) {
+			logger.log(Level.ERROR, result.get(1));
+		}
 	}
 
 	public static List<String> run(File xliffFile, String catalog, String version) {
@@ -102,11 +167,11 @@ public class ToXliff2 {
 		return result;
 	}
 
-	private static void recurse(Element source, Element target) throws SAXException, IOException {
+	private static void recurse(Element source, Element target)
+			throws SAXException, IOException, ParserConfigurationException {
 		if (source.getName().equals("xliff")) {
 			target.setAttribute("xmlns", "urn:oasis:names:tc:xliff:document:2.0");
 			target.setAttribute("xmlns:mda", "urn:oasis:names:tc:xliff:metadata:2.0");
-			target.setAttribute("xmlns:mtc", "urn:oasis:names:tc:xliff:matches:2.0");
 
 			List<PI> piList = source.getPI();
 			for (int i = 0; i < piList.size(); i++) {
@@ -132,6 +197,9 @@ public class ToXliff2 {
 			Element file = new Element("file");
 			file.setAttribute("id", "" + fileId++);
 			file.setAttribute("original", source.getAttributeValue("original"));
+			if (source.hasAttribute("ts")) {
+				file.addContent(new PI("ts", source.getAttributeValue("ts")));
+			}
 			List<Attribute> atts = source.getAttributes();
 			Iterator<Attribute> at = atts.iterator();
 			while (at.hasNext()) {
@@ -264,10 +332,28 @@ public class ToXliff2 {
 				Iterator<PI> pit = pis.iterator();
 				while (pit.hasNext()) {
 					PI pi = pit.next();
-					Element meta = new Element("mda:meta");
-					meta.setAttribute("type", pi.getTarget());
-					meta.addContent(pi.getData());
-					piGroup.addContent(meta);
+					if ("metadata".equals(pi.getTarget())) {
+						file.addContent(pi);
+					} else if ("reviewProject".equals(pi.getTarget()) || "tool".equals(pi.getTarget())
+							|| "document".equals(pi.getTarget()) || "sourceFile".equals(pi.getTarget())) {
+						Element extractedMetaGroup = new Element("mda:metaGroup");
+						extractedMetaGroup.setAttribute("category", pi.getTarget());
+						JSONObject obj = new JSONObject(pi.getData());
+						Iterator<String> keys = obj.keys();
+						while (keys.hasNext()) {
+							String key = keys.next();
+							Element meta = new Element("mda:meta");
+							meta.setAttribute("type", key);
+							meta.addContent(obj.getString(key));
+							extractedMetaGroup.addContent(meta);
+						}
+						fileMetadata.addContent(extractedMetaGroup);
+					} else {
+						Element meta = new Element("mda:meta");
+						meta.setAttribute("type", pi.getTarget());
+						meta.addContent(pi.getData());
+						piGroup.addContent(meta);
+					}
 				}
 				if (!piGroup.getChildren().isEmpty()) {
 					fileMetadata.addContent(piGroup);
@@ -319,7 +405,8 @@ public class ToXliff2 {
 				Attribute a = at.next();
 				if (a.getName().indexOf(':') != -1 && !a.getName().startsWith("xml:")) {
 					unit.setAttribute(a);
-				} else if (preserveAttributes.contains(a.getName()) && !("ts".equals(a.getName()) && "locked".equals(a.getValue()))) {
+				} else if (preserveAttributes.contains(a.getName())
+						&& !("ts".equals(a.getName()) && "locked".equals(a.getValue()))) {
 					otherAttributes.add(a);
 				}
 			}
@@ -338,6 +425,16 @@ public class ToXliff2 {
 					metaGroup.addContent(meta);
 				}
 			}
+			List<PI> pis = source.getPI();
+			if (!pis.isEmpty()) {
+				Iterator<PI> pit = pis.iterator();
+				while (pit.hasNext()) {
+					PI pi = pit.next();
+					if ("metadata".equals(pi.getTarget())) {
+						unit.addContent(pi);
+					}
+				}
+			}
 			target.addContent(unit);
 
 			List<Element> sourceNotes = new ArrayList<>();
@@ -349,6 +446,9 @@ public class ToXliff2 {
 				for (int i = 0; i < notesList.size(); i++) {
 					Element note = notesList.get(i);
 					Element n = new Element("note");
+					if (note.hasAttribute("priority")) {
+						n.setAttribute("priority", note.getAttributeValue("priority"));
+					}
 					n.setAttribute("id", "n" + (i + 1));
 					notes.addContent(n);
 					n.addContent(note.getText());
@@ -360,9 +460,12 @@ public class ToXliff2 {
 				}
 			}
 
-			Element tagAttributes = new Element("mda:metadata");
+			Element tagAttributes = unit.getChild("mda:metadata");
+			if (tagAttributes == null) {
+				tagAttributes = new Element("mda:metadata");
+				unit.addContent(tagAttributes);
+			}
 			tagAttributes.setAttribute("id", unit.getAttributeValue("id"));
-			unit.addContent(tagAttributes);
 			Element originalData = new Element("originalData");
 			unit.addContent(originalData);
 
@@ -705,5 +808,12 @@ public class ToXliff2 {
 			}
 		}
 		return result;
+	}
+
+	private static void help() {
+		MessageFormat mf = new MessageFormat(Messages.getString("ToXliff2.help"));
+		boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
+		String help = mf.format(new String[] { isWindows ? "toxliff2.cmd" : "toxliff2.sh" });
+		System.out.println(help);
 	}
 }

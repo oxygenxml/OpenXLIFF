@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 1.0 which accompanies this distribution,
@@ -36,6 +36,7 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
+import com.maxprograms.xml.XMLUtils;
 
 public class Txlf2Xliff {
 
@@ -149,6 +150,7 @@ public class Txlf2Xliff {
             tag = 1;
             Element originalTarget = root.getChild("target");
             if (originalTarget != null) {
+                tag = 1;
                 if (originalTarget.hasAttribute("state")) {
                     String state = originalTarget.getAttributeValue("state");
                     target.setAttribute("state", state);
@@ -158,7 +160,7 @@ public class Txlf2Xliff {
                         && !originalTarget.getAttributeValue("state-qualifier").startsWith("x-")) {
                     target.setAttribute(originalTarget.getAttribute("state-qualifier"));
                 }
-                target.setContent(originalTarget.getContent());
+                target.setContent(getContent(originalTarget));
                 unit.addContent(target);
             }
             units.add(unit);
@@ -230,7 +232,7 @@ public class Txlf2Xliff {
                             || "bpt".equals(name) || "ept".equals(name) || "it".equals(name)) {
                         Element ph = new Element("ph");
                         ph.setAttribute("id", "" + tag++);
-                        ph.setText(e.toString());
+                        ph.setText(XMLUtils.cleanText(e.toString()));
                         result.add(ph);
                     }
                     if ("mrk".equals(name)) {

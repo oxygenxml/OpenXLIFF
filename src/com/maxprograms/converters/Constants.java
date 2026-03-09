@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -20,9 +20,10 @@ public class Constants {
 	}
 
 	public static final String TOOLID = "OpenXLIFF";
+
 	public static final String TOOLNAME = "OpenXLIFF Filters";
-	public static final String VERSION = "4.3.1";
-	public static final String BUILD = "20250315_1747";
+	public static final String VERSION = "4.11.0";
+	public static final String BUILD = "20260303_1721";
 
 	public static final String SUCCESS = "0";
 	public static final String ERROR = "1";

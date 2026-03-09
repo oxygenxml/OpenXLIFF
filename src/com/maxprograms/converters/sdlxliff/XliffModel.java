@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 - 2025 Maxprograms.
+ * Copyright (c) 2018 - 2026 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -27,8 +27,8 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.xml.sax.SAXException;
 
-import com.maxprograms.converters.Utils;
 import com.maxprograms.segmenter.Segmenter;
+import com.maxprograms.segmenter.SegmenterPool;
 import com.maxprograms.xml.Attribute;
 import com.maxprograms.xml.Catalog;
 import com.maxprograms.xml.Document;
@@ -38,6 +38,7 @@ import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
+import com.maxprograms.xml.XMLUtils;
 
 public class XliffModel {
 
@@ -73,7 +74,7 @@ public class XliffModel {
 		version = root.getAttributeValue("version");
 		srclang = root.getChild("file").getAttributeValue("source-language");
 		if (version.equals("1.2") && srx != null) {
-			segmenter = new Segmenter(srx, srclang, catalog);
+			segmenter = SegmenterPool.getSegmenter(srx, srclang, catalog);
 		}
 		ids = new ArrayList<>();
 		sources = new HashMap<>();
@@ -293,13 +294,13 @@ public class XliffModel {
 		writeStr("<xliff version=\"1.2\" xmlns=\"urn:oasis:names:tc:xliff:document:1.2\" "
 				+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
 				+ "xsi:schemaLocation=\"urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd\">\n");
-		writeStr("<file datatype=\"x-unknown\" original=\"" + Utils.cleanString(original) + "\" source-language=\""
+		writeStr("<file datatype=\"x-unknown\" original=\"" + XMLUtils.cleanText(original) + "\" source-language=\""
 				+ srclang + targetLanguage + "\">\n");
 		writeStr("<?encoding " + doc.getEncoding() + "?>\n");
 
 		writeStr("<header>\n");
 		writeStr("<skl>\n");
-		writeStr("<external-file href=\"" + Utils.cleanString(skeletonFile) + "\"/>\n");
+		writeStr("<external-file href=\"" + XMLUtils.cleanText(skeletonFile) + "\"/>\n");
 		writeStr("</skl>\n");
 		writeStr("</header>\n");
 		writeStr("<body>\n");
